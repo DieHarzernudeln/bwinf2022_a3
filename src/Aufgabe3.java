@@ -20,13 +20,19 @@ public class Aufgabe3 {
     }
 
     public Aufgabe3(String[] _args){
-        args = _args;
+        //args = _args; Removed for testing
+        args = new String[1];
+        args[0] = "beispiele/sudoku0.txt";
         readInput();
         printMatrix(matrix1);
         System.out.println();
         printMatrix(matrix2);
-        createPairs();
-        System.out.println(pairs);
+        System.out.println();
+        printMatrix(rot90CW(matrix2));
+        for (int i = 0; i < 1679616 * 4; i++) {
+            matrix1 = rot90CW(matrix1);
+        }
+        System.out.println("end");
     }
 
     private void readInput(){
@@ -133,8 +139,8 @@ public class Aufgabe3 {
 
     private int[] parseToIntArray(String line){
         return Arrays.stream(line
-                .replaceAll("[^0-9]+", "")            //Remove unwanted characters
-                .split("(?!^)"))                                //Split without empty first element
+                .replaceAll("[^0-9]+", "") //Remove unwanted characters (including BOM)
+                .split("(?!^)")) //Split without first empty element
                 .mapToInt(Integer::parseInt)
                 .toArray();
     }
@@ -145,6 +151,18 @@ public class Aufgabe3 {
 
     private int[] getRow(int[][] matrix, int row){
         return matrix[row];
+    }
+
+    private int[][] rot90CW(int[][] matrix){
+        int row = matrix.length;
+        int colums = matrix[0].length;
+        int[][] rotatedMat = new int[colums][row];
+        for (int r = 0; r < row; r++) {
+            for (int c = 0; c < colums; c++) {
+                rotatedMat[c][row -1-r] = matrix[r][c];
+            }
+        }
+        return rotatedMat;
     }
 
     private int numberFilled(int[][] matrix){
@@ -174,15 +192,12 @@ public class Aufgabe3 {
 
         @Override
         public String toString() {
-            StringBuilder sb = new StringBuilder();
-            sb.append("\nLine1 is column: ").append(column);
-            sb.append("\nLine1 index: ").append(line1Index);
-            sb.append("\nLine2 index: ").append(line2Index);
-            sb.append("\nRotations: ").append(rotations);
-            sb.append("\nMap: ").append(Arrays.toString(map));
-            sb.append("\n");
-
-            return sb.toString();
+            return "\nLine1 is column: " + column +
+                    "\nLine1 index: " + line1Index +
+                    "\nLine2 index: " + line2Index +
+                    "\nRotations: " + rotations +
+                    "\nMap: " + Arrays.toString(map) +
+                    "\n";
         }
     }
 
