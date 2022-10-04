@@ -10,36 +10,37 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.IntStream;
 
 public class Aufgabe3 {
 
-    private String[] args;
-    private int[][] matrix1 = new int[9][9];
-    private int[][] matrix2 = new int[9][9];
-    private int[][] combos;
+    private final String[] args;
+    private final int[][] matrix1 = new int[9][9];
+    private final int[][] matrix2 = new int[9][9];
+    private int[][] combinations;
     private Iterator<int[][]> iterator;
-    private List<Solution> solutions = new ArrayList<>();
+    private final List<Solution> solutions = new ArrayList<>();
 
     public static void main(String[] args) {
         new Aufgabe3(args);
     }
 
     public Aufgabe3(String[] _args){
-        //args = _args; Removed for testing
+        //args = _args;
         args = new String[1];
-        args[0] = "beispiele/sudoku3.txt";
+        args[0] = "beispiele/s0.txt"; //Disabled launch arguments for testing
         readInput();
+
+        //Print original matrices
         System.out.println("Sudoku 1: ");
         printMatrix(matrix1);
         System.out.println("Sudoku 2: ");
         printMatrix(matrix2);
-        generateCombos();
-        compareAll();
-        printSolutions();
-    }
 
-    private void printSolutions(){
+        compareAll();
+
+        //Print results
         if (solutions.isEmpty()){
             System.out.println("Sudoku 2 ist keine Variante von Sudoku 1\n");
         }
@@ -52,35 +53,53 @@ public class Aufgabe3 {
         }
     }
 
+    //Compare all variations of matrix 2 with matrix 1 and save the first valid variation (if any)
     private void compareAll(){
+        generateCombos();
+        int[][] matrix1copy = matrix1;
+        //Matrix 1 could be turned 3 times before returning to its original state
         for (int i = 0; i < 4; i++) {
             setIterator();
             while (iterator.hasNext()){
                 boolean isIdentical = true;
-                int[][] map = iterator.next();
+                int[][] lineShiftMap = iterator.next();
+                /*
+                    lineShiftMap[x] contains placements of ...
+                    0: rows in row block 0
+                    1: rows in row block 1
+                    2: rows in row block 2
+                    3: row blocks
+                    4: columns in column block 0
+                    5: columns in column block 1
+                    6: columns in column block 2
+                    7: column blocks
+                */
+
+                //Move rows and row blocks around
                 int[][] rowsShuffled = new int[9][9];
                 for (int j = 0; j < 9; j++) {
                     int bIndex = j / 3;
-                    int block = map[3][bIndex];
+                    int block = lineShiftMap[3][bIndex];
                     int lIndex = j % 3;
-                    int line = map[bIndex][lIndex];
-                    rowsShuffled[3 * block + line] = matrix1[j];
+                    int line = lineShiftMap[bIndex][lIndex];
+                    rowsShuffled[3 * block + line] = matrix1copy[j];
                 }
+
+                //Move columns and column blocks around
                 int[][] columnsShuffled = new int[9][9];
                 for (int j = 0; j < 9; j++) {
                     int bIndex = j / 3;
-                    int block = map[7][bIndex];
+                    int block = lineShiftMap[7][bIndex];
                     int lIndex = j % 3;
-                    int line = map[bIndex + 4][lIndex];
+                    int line = lineShiftMap[bIndex + 4][lIndex];
                     setColumn(columnsShuffled, 3 * block + line, getColumn(rowsShuffled, j));
                 }
 
+                //Compare the variation with matrix 2
                 Iterator<Integer> i1 = Arrays.stream(columnsShuffled).flatMapToInt(Arrays::stream).iterator();
                 Iterator<Integer> i2 = Arrays.stream(matrix2).flatMapToInt(Arrays::stream).iterator();
-
                 Map<Integer, Integer> map1to2 = new HashMap<>();
                 Map<Integer, Integer> map2to1 = new HashMap<>();
-
                 while (i1.hasNext() && i2.hasNext()){
                     int n1 = i1.next();
                     int n2 = i2.next();
@@ -108,14 +127,16 @@ public class Aufgabe3 {
                     }
                 }
                 if (isIdentical){
-                    solutions.add(new Solution(i, map, map1to2));
-                    return; //remove for all solutions;
+                    solutions.add(new Solution(i, lineShiftMap, map1to2));
+                    return; //remove this to get all solutions
                 }
             }
-            matrix1 = rot90CW(matrix1);
+            matrix1copy = rot90CW(matrix1copy);
         }
     }
 
+    //Get all permutations of 0, 1 and 2
+    //One could preset the combinations, which would be more efficient
     private void generateCombos(){
         int n = 3;
         int[] A = IntStream.range(0, 3).toArray();
@@ -146,14 +167,15 @@ public class Aufgabe3 {
                 i++;
             }
         }
-        combos = res.toArray(new int[0][]);
+        combinations = res.toArray(new int[0][]);
     }
 
+    //Iterate through combinations of combinations
     private void setIterator(){
         iterator = new Iterator<>() {
-            int length = 8;
-            int max = combos.length - 1;
-            int[] first = new int[length];
+            final int length = 8;
+            final int max = combinations.length - 1;
+            final int[] first = new int[length];
 
             {
                 for (int i = 0; i < length; i++) {
@@ -178,13 +200,14 @@ public class Aufgabe3 {
                     }
                 }
                 for (int i = 0; i < length; i++) {
-                    ret2[i] = combos[ret[i]];
+                    ret2[i] = combinations[ret[i]];
                 }
                 return ret2;
             }
         };
     }
 
+    //Read input using the passed arguments
     private void readInput(){
         if (args.length < 1){
             System.out.println("Syntax: java Aufgabe3.java <Pfad zur Eingabedatei>");
@@ -212,6 +235,7 @@ public class Aufgabe3 {
 
     }
 
+    //Parse line of numbers to and integer array
     private int[] parseToIntArray(String line){
         return Arrays.stream(line
                 .replaceAll("[^0-9]+", "") //Remove unwanted characters (including BOM)
@@ -220,16 +244,19 @@ public class Aufgabe3 {
                 .toArray();
     }
 
+    //Get Column of a matrix
     private int[] getColumn(int[][] matrix, int column){
         return Arrays.stream(matrix).mapToInt(row -> row[column]).toArray();
     }
 
+    //Set Column of a matrix
     private void setColumn(int[][] matrix, int column, int[] line){
         for (int i = 0; i < matrix.length; i++) {
             matrix[i][column] = line[i];
         }
     }
 
+    //Rotate the give matrix by 90 degrees clockwise
     private int[][] rot90CW(int[][] matrix){
         int row = matrix.length;
         int columns = matrix[0].length;
@@ -242,21 +269,23 @@ public class Aufgabe3 {
         return rotatedMat;
     }
 
+    //Print the matrix in a format that is easy to read
     private void printMatrix(int[][] matrix){
-        for (int i = 0; i < matrix.length; i++) {
-            for (int j = 0; j < matrix[i].length; j++) {
-                System.out.print(matrix[i][j] + " ");
+        for (int[] ints : matrix) {
+            for (int anInt : ints) {
+                System.out.print(anInt + " ");
             }
             System.out.println();
         }
         System.out.println();
     }
 
-    class Solution {
+    //Contains a valid solution
+    private class Solution {
 
-        private int rotations;
-        private int[][] map;
-        private Map<Integer, Integer> numMap;
+        private final int rotations;
+        private final int[][] map;
+        private final Map<Integer, Integer> numMap;
 
         public Solution(int _rotations, int[][] _map, Map<Integer, Integer> _numMap){
             this.rotations = _rotations;
@@ -264,38 +293,39 @@ public class Aufgabe3 {
             this.numMap = _numMap;
         }
 
+        //Format the solutions so that it's easy to read
         @Override
         public String toString() {
             StringBuilder sb = new StringBuilder();
             if (rotations != 0)
-                sb.append(rotations * 90 + " Grad in Uhrzeigesinn drehen" + "\n");
+                sb.append(rotations * 90).append(" Grad in Uhrzeigesinn drehen").append("\n");
             for (int i = 0; i < 3; i++) {
                 for (int j = 0; j < 3; j++) {
                     if (map[i][j] != j){
-                        sb.append((i + 1) + ". Zeilenblock, " + (j + 1) + ". Zeile -> " + (map[i][j] + 1) + ". Zeile\n");
+                        sb.append(i + 1).append(". Zeilenblock, ").append(j + 1).append(". Zeile -> ").append(map[i][j] + 1).append(". Zeile\n");
                     }
                 }
             }
             for (int i = 0; i < 3; i++) {
                 if (map[3][i] != i){
-                    sb.append((i + 1) + ". Zeilenblock -> " + (map[3][i] + 1) + ". Zeilenblock\n");
+                    sb.append(i + 1).append(". Zeilenblock -> ").append(map[3][i] + 1).append(". Zeilenblock\n");
                 }
             }
             for (int i = 0; i < 3; i++) {
                 for (int j = 0; j < 3; j++) {
                     if (map[i + 4][j] != j){
-                        sb.append((i + 1) + ". Spaltenblock, " + (j + 1) + ". Spalte -> " + (map[i + 4][j] + 1) + ". Spalte\n");
+                        sb.append(i + 1).append(". Spaltenblock, ").append(j + 1).append(". Spalte -> ").append(map[i + 4][j] + 1).append(". Spalte\n");
                     }
                 }
             }
             for (int i = 0; i < 3; i++) {
                 if (map[7][i] != i){
-                    sb.append((i + 1) + ". Spaltenblock -> " + (map[7][i] + 1) + ". Spaltenblock\n");
+                    sb.append(i + 1).append(". Spaltenblock -> ").append(map[7][i] + 1).append(". Spaltenblock\n");
                 }
             }
             for (Map.Entry<Integer, Integer> entry : numMap.entrySet()){
-                if (entry.getKey() != entry.getValue()){
-                    sb.append(entry.getKey() + " -> " + entry.getValue() + "\n");
+                if (!Objects.equals(entry.getKey(), entry.getValue())){
+                    sb.append(entry.getKey()).append(" -> ").append(entry.getValue()).append("\n");
                 }
             }
             return sb.toString();
