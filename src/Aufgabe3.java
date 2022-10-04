@@ -18,7 +18,7 @@ public class Aufgabe3 {
     private int[][] matrix1 = new int[9][9];
     private int[][] matrix2 = new int[9][9];
     private int[][] combos;
-    private Iterator<int[]> iterator;
+    private Iterator<int[][]> iterator;
     private List<Solution> solutions = new ArrayList<>();
 
     public static void main(String[] args) {
@@ -28,29 +28,54 @@ public class Aufgabe3 {
     public Aufgabe3(String[] _args){
         //args = _args; Removed for testing
         args = new String[1];
-        args[0] = "beispiele/sudoku2.txt";
+        args[0] = "beispiele/sudoku3.txt";
         readInput();
+        System.out.println("Sudoku 1: ");
         printMatrix(matrix1);
-        System.out.println();
+        System.out.println("Sudoku 2: ");
         printMatrix(matrix2);
-        System.out.println();
+        generateCombos();
         compareAll();
-        for (Solution solution : solutions) {
-            System.out.println(solution.toString());
+        printSolutions();
+    }
+
+    private void printSolutions(){
+        if (solutions.isEmpty()){
+            System.out.println("Sudoku 2 ist keine Variante von Sudoku 1\n");
+        }
+        else{
+            System.out.println("Sudoku 2 ist eine Variante von Sudoku 1\n");
+            System.out.println("Umformungen (in der Reihenfolge durchführen): \n");
+            for (Solution solution : solutions) {
+                System.out.println(solution.toString());
+            }
         }
     }
 
     private void compareAll(){
-        generateCombos();
         for (int i = 0; i < 4; i++) {
             setIterator();
             while (iterator.hasNext()){
-                boolean isValid = true;
-                int[] m = iterator.next();
-                int[][] temp = shuffleRows(matrix1, m);
-                int[][] pM1 = shuffleColumns(temp, m);
+                boolean isIdentical = true;
+                int[][] map = iterator.next();
+                int[][] rowsShuffled = new int[9][9];
+                for (int j = 0; j < 9; j++) {
+                    int bIndex = j / 3;
+                    int block = map[3][bIndex];
+                    int lIndex = j % 3;
+                    int line = map[bIndex][lIndex];
+                    rowsShuffled[3 * block + line] = matrix1[j];
+                }
+                int[][] columnsShuffled = new int[9][9];
+                for (int j = 0; j < 9; j++) {
+                    int bIndex = j / 3;
+                    int block = map[7][bIndex];
+                    int lIndex = j % 3;
+                    int line = map[bIndex + 4][lIndex];
+                    setColumn(columnsShuffled, 3 * block + line, getColumn(rowsShuffled, j));
+                }
 
-                Iterator<Integer> i1 = Arrays.stream(pM1).flatMapToInt(Arrays::stream).iterator();
+                Iterator<Integer> i1 = Arrays.stream(columnsShuffled).flatMapToInt(Arrays::stream).iterator();
                 Iterator<Integer> i2 = Arrays.stream(matrix2).flatMapToInt(Arrays::stream).iterator();
 
                 Map<Integer, Integer> map1to2 = new HashMap<>();
@@ -60,19 +85,19 @@ public class Aufgabe3 {
                     int n1 = i1.next();
                     int n2 = i2.next();
                     if ((n1 == 0) != (n2 == 0)){
-                        isValid = false;
+                        isIdentical = false;
                         break;
                     }
                     if (n1 != 0){
                         if (map1to2.containsKey(n1)){
                             if (map1to2.get(n1) != n2){
-                                isValid = false;
+                                isIdentical = false;
                                 break;
                             }
                         }
                         if (map2to1.containsKey(n2)){
                             if (map2to1.get(n2) != n1){
-                                isValid = false;
+                                isIdentical = false;
                                 break;
                             }
                         }
@@ -82,37 +107,13 @@ public class Aufgabe3 {
                         }
                     }
                 }
-                if (isValid){
-                    solutions.add(new Solution(i, m, map1to2));
+                if (isIdentical){
+                    solutions.add(new Solution(i, map, map1to2));
                     return; //remove for all solutions;
                 }
             }
             matrix1 = rot90CW(matrix1);
         }
-    }
-
-    private int[][] shuffleRows(int[][] matrix, int[] map){
-        int[][] res = new int[matrix.length][matrix[0].length];
-        for (int i = 0; i < matrix.length; i++) {
-            int bIndex = i / 3;
-            int block = combos[map[3]][bIndex];
-            int lIndex = i % 3;
-            int line = combos[map[bIndex]][lIndex];
-            res[3 * block + line] = matrix[i];
-        }
-        return res;
-    }
-
-    private int[][] shuffleColumns(int[][] matrix, int[] map){
-        int[][] res = new int[matrix.length][matrix[0].length];
-        for (int i = 0; i < matrix[0].length; i++) {
-            int bIndex = i / 3;
-            int block = combos[map[7]][bIndex];
-            int lIndex = i % 3;
-            int line = combos[map[bIndex + 4]][lIndex];
-            setColumn(res, 3 * block + line, getColumn(matrix, i));
-        }
-        return res;
     }
 
     private void generateCombos(){
@@ -166,8 +167,9 @@ public class Aufgabe3 {
             }
 
             @Override
-            public int[] next() {
+            public int[][] next() {
                 int[] ret = first.clone();
+                int[][] ret2 = new int[ret.length][];
                 first[length - 1] += 1;
                 for (int i = length - 1; i > 0; i--) {
                     if (first[i] > max) {
@@ -175,7 +177,10 @@ public class Aufgabe3 {
                         first[i - 1] += 1;
                     }
                 }
-                return ret;
+                for (int i = 0; i < length; i++) {
+                    ret2[i] = combos[ret[i]];
+                }
+                return ret2;
             }
         };
     }
@@ -250,15 +255,12 @@ public class Aufgabe3 {
     class Solution {
 
         private int rotations;
-        private int[][] shuffles;
+        private int[][] map;
         private Map<Integer, Integer> numMap;
 
-        public Solution(int _rotations, int[] _combo, Map<Integer, Integer> _numMap){
+        public Solution(int _rotations, int[][] _map, Map<Integer, Integer> _numMap){
             this.rotations = _rotations;
-            this.shuffles = new int[_combo.length][];
-            for (int i = 0; i < _combo.length; i++) {
-                shuffles[i] = combos[_combo[i]];
-            }
+            this.map = _map;
             this.numMap = _numMap;
         }
 
@@ -266,29 +268,29 @@ public class Aufgabe3 {
         public String toString() {
             StringBuilder sb = new StringBuilder();
             if (rotations != 0)
-                sb.append("rotations: " + rotations + "\n");
+                sb.append(rotations * 90 + " Grad in Uhrzeigesinn drehen" + "\n");
             for (int i = 0; i < 3; i++) {
                 for (int j = 0; j < 3; j++) {
-                    if (shuffles[i][j] != j){
-                        sb.append("h-block" + i + " row" + j + " -> " + shuffles[i][j] + "\n");
+                    if (map[i][j] != j){
+                        sb.append((i + 1) + ". Zeilenblock, " + (j + 1) + ". Zeile -> " + (map[i][j] + 1) + ". Zeile\n");
                     }
                 }
             }
             for (int i = 0; i < 3; i++) {
-                if (shuffles[3][i] != i){
-                    sb.append("h-block" + i + " -> " + shuffles[3][i] + "\n");
+                if (map[3][i] != i){
+                    sb.append((i + 1) + ". Zeilenblock -> " + (map[3][i] + 1) + ". Zeilenblock\n");
                 }
             }
             for (int i = 0; i < 3; i++) {
                 for (int j = 0; j < 3; j++) {
-                    if (shuffles[i + 4][j] != j){
-                        sb.append("v-block" + i + " column" + j + " -> " + shuffles[i + 4][j] + "\n");
+                    if (map[i + 4][j] != j){
+                        sb.append((i + 1) + ". Spaltenblock, " + (j + 1) + ". Spalte -> " + (map[i + 4][j] + 1) + ". Spalte\n");
                     }
                 }
             }
             for (int i = 0; i < 3; i++) {
-                if (shuffles[7][i] != i){
-                    sb.append("v-block" + i + " -> " + shuffles[7][i] + "\n");
+                if (map[7][i] != i){
+                    sb.append((i + 1) + ". Spaltenblock -> " + (map[7][i] + 1) + ". Spaltenblock\n");
                 }
             }
             for (Map.Entry<Integer, Integer> entry : numMap.entrySet()){
