@@ -27,12 +27,11 @@ public class Aufgabe3 {
     }
 
     public Aufgabe3(String[] _args){
-        //args = _args;
-        args = new String[1];
-        args[0] = "beispiele/s0.txt"; //Disabled launch arguments for testing
+        args = _args;
         readInput();
 
         //Print original matrices
+        System.out.println();
         System.out.println("Sudoku 1: ");
         printMatrix(matrix1);
         System.out.println("Sudoku 2: ");
@@ -46,7 +45,7 @@ public class Aufgabe3 {
         }
         else{
             System.out.println("Sudoku 2 ist eine Variante von Sudoku 1\n");
-            System.out.println("Umformungen (in der Reihenfolge durchführen): \n");
+            System.out.println("Umformungen (in der Reihenfolge durchfuehren): \n");
             for (Solution solution : solutions) {
                 System.out.println(solution.toString());
             }
@@ -172,7 +171,7 @@ public class Aufgabe3 {
 
     //Iterate through combinations of combinations
     private void setIterator(){
-        iterator = new Iterator<>() {
+        iterator = new Iterator<int[][]>() {
             final int length = 8;
             final int max = combinations.length - 1;
             final int[] first = new int[length];
