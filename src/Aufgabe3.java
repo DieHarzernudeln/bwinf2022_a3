@@ -6,21 +6,25 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.IntStream;
+import java.util.TreeMap;
 
 public class Aufgabe3 {
 
     private final String[] args;
     private final int[][] matrix1 = new int[9][9];
     private final int[][] matrix2 = new int[9][9];
-    private int[][] combinations;
     private Iterator<int[][]> iterator;
     private final List<Solution> solutions = new ArrayList<>();
+    private final int[][] combinations = {{0, 1, 2},
+                                          {0 ,2, 1},
+                                          {1, 0, 2},
+                                          {1, 2, 0},
+                                          {2, 0, 1},
+                                          {2, 1, 0}};
 
     public static void main(String[] args) {
         new Aufgabe3(args);
@@ -52,16 +56,15 @@ public class Aufgabe3 {
         }
     }
 
-    //Compare all variations of matrix 2 with matrix 1 and save the first valid variation (if any)
+    //Compare all variations of matrix 1 with matrix 2 and save the first valid variation (if any)
     private void compareAll(){
-        generateCombos();
         int[][] matrix1copy = matrix1;
-        //Matrix 1 could be turned 3 times before returning to its original state
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 2; i++) {
             setIterator();
             while (iterator.hasNext()){
                 boolean isIdentical = true;
                 int[][] lineShiftMap = iterator.next();
+
                 /*
                     lineShiftMap[x] contains placements of ...
                     0: rows in row block 0
@@ -97,8 +100,8 @@ public class Aufgabe3 {
                 //Compare the variation with matrix 2
                 Iterator<Integer> i1 = Arrays.stream(columnsShuffled).flatMapToInt(Arrays::stream).iterator();
                 Iterator<Integer> i2 = Arrays.stream(matrix2).flatMapToInt(Arrays::stream).iterator();
-                Map<Integer, Integer> map1to2 = new HashMap<>();
-                Map<Integer, Integer> map2to1 = new HashMap<>();
+                Map<Integer, Integer> map1to2 = new TreeMap<>();
+                Map<Integer, Integer> map2to1 = new TreeMap<>();
                 while (i1.hasNext() && i2.hasNext()){
                     int n1 = i1.next();
                     int n2 = i2.next();
@@ -130,43 +133,10 @@ public class Aufgabe3 {
                     return; //remove this to get all solutions
                 }
             }
-            matrix1copy = rot90CW(matrix1copy);
-        }
-    }
-
-    //Get all permutations of 0, 1 and 2
-    //One could preset the combinations, which would be more efficient
-    private void generateCombos(){
-        int n = 3;
-        int[] A = IntStream.range(0, 3).toArray();
-        List<int[]> res = new ArrayList<>();
-        int[] c = new int[n];
-        for (int i = 0; i < n; i++) {
-            c[i] = 0;
-        }
-        res.add(A.clone());
-        int i = 0;
-        while (i < n) {
-            if (c[i] < i) {
-                int tmp = A[i];
-                if (i % 2 == 0){
-                    A[i] = A[0];
-                    A[0] = tmp;
-                }
-                else{
-                    A[i] = A[c[i]];
-                    A[c[i]] = tmp;
-                }
-                res.add(A.clone());
-                c[i]++;
-                i = 0;
-            }
-            else {
-                c[i] = 0;
-                i++;
+            if (i == 0){
+                matrix1copy = rot90CW(matrix1copy);
             }
         }
-        combinations = res.toArray(new int[0][]);
     }
 
     //Iterate through combinations of combinations
@@ -189,8 +159,8 @@ public class Aufgabe3 {
 
             @Override
             public int[][] next() {
-                int[] ret = first.clone();
-                int[][] ret2 = new int[ret.length][];
+                int[] indexes = first.clone();
+                int[][] map = new int[indexes.length][];
                 first[length - 1] += 1;
                 for (int i = length - 1; i > 0; i--) {
                     if (first[i] > max) {
@@ -199,9 +169,9 @@ public class Aufgabe3 {
                     }
                 }
                 for (int i = 0; i < length; i++) {
-                    ret2[i] = combinations[ret[i]];
+                    map[i] = combinations[indexes[i]];
                 }
-                return ret2;
+                return map;
             }
         };
     }
@@ -209,13 +179,13 @@ public class Aufgabe3 {
     //Read input using the passed arguments
     private void readInput(){
         if (args.length < 1){
-            System.out.println("Syntax: java Aufgabe3.java <Pfad zur Eingabedatei>");
+            System.out.println("Syntax: Aufgabe3 <Pfad zur Eingabedatei>");
             System.exit(0);
         }
         File inputFile = new File(args[0]);
         if (!inputFile.exists()){
             System.out.println("Datei existiert nicht.");
-            System.exit(0);
+            System.exit(1);
         }
         try (BufferedReader br = new BufferedReader(
                new InputStreamReader(new FileInputStream(inputFile), StandardCharsets.UTF_8))){
@@ -229,7 +199,7 @@ public class Aufgabe3 {
         }
         catch (IOException e){
             System.out.println("Error while loading input file.");
-            System.exit(0);
+            System.exit(1);
         }
 
     }
@@ -296,36 +266,82 @@ public class Aufgabe3 {
         @Override
         public String toString() {
             StringBuilder sb = new StringBuilder();
-            if (rotations != 0)
-                sb.append(rotations * 90).append(" Grad in Uhrzeigesinn drehen").append("\n");
+            StringBuilder tmp;
+            boolean empty;
+            if (rotations == 1)
+                sb.append("90 Grad in Uhrzeigesinn drehen").append("\n");
             for (int i = 0; i < 3; i++) {
+                tmp = new StringBuilder();
+                empty = true;
+                tmp.append("Zeilen ").append(i * 3 + 1).append("-").append(i * 3 + 3).append(":");
                 for (int j = 0; j < 3; j++) {
                     if (map[i][j] != j){
-                        sb.append(i + 1).append(". Zeilenblock, ").append(j + 1).append(". Zeile -> ").append(map[i][j] + 1).append(". Zeile\n");
+                        empty = false;
                     }
+                    tmp.append(" ").append(map[i][j] + 1);
+                }
+                if (!empty){
+                    tmp.append("\n");
+                    sb.append(tmp);
                 }
             }
+
+            tmp = new StringBuilder();
+            empty = true;
+            tmp.append("Zeilenbloecke:");
             for (int i = 0; i < 3; i++) {
                 if (map[3][i] != i){
-                    sb.append(i + 1).append(". Zeilenblock -> ").append(map[3][i] + 1).append(". Zeilenblock\n");
+                    empty = false;
                 }
+                tmp.append(" ").append(map[3][i] + 1);
             }
+            if (!empty){
+                tmp.append("\n");
+                sb.append(tmp);
+            }
+
             for (int i = 0; i < 3; i++) {
+                tmp = new StringBuilder();
+                empty = true;
+                tmp.append("Spalten ").append(i * 3 + 1).append("-").append(i * 3 + 3).append(":");
                 for (int j = 0; j < 3; j++) {
                     if (map[i + 4][j] != j){
-                        sb.append(i + 1).append(". Spaltenblock, ").append(j + 1).append(". Spalte -> ").append(map[i + 4][j] + 1).append(". Spalte\n");
+                        empty = false;
                     }
+                    tmp.append(" ").append(map[i + 4][j] + 1);
+                }
+                if (!empty){
+                    tmp.append("\n");
+                    sb.append(tmp);
                 }
             }
+
+            tmp = new StringBuilder();
+            empty = true;
+            sb.append("Spaltenbloecke:");
             for (int i = 0; i < 3; i++) {
                 if (map[7][i] != i){
-                    sb.append(i + 1).append(". Spaltenblock -> ").append(map[7][i] + 1).append(". Spaltenblock\n");
+                    empty = false;
                 }
+                sb.append(" ").append(map[7][i] + 1);
             }
+            if (!empty){
+                tmp.append("\n");
+                sb.append(tmp);
+            }
+
+            tmp = new StringBuilder();
+            empty = true;
+            tmp.append("Umbenennungen:");
             for (Map.Entry<Integer, Integer> entry : numMap.entrySet()){
                 if (!Objects.equals(entry.getKey(), entry.getValue())){
-                    sb.append(entry.getKey()).append(" -> ").append(entry.getValue()).append("\n");
+                    empty = false;
                 }
+                tmp.append(" ").append(entry.getValue());
+            }
+            if (!empty){
+                tmp.append("\n");
+                sb.append(tmp);
             }
             return sb.toString();
         }
