@@ -332,12 +332,12 @@ public class Aufgabe3 {
 
             tmp = new StringBuilder();
             empty = true;
-            tmp.append("Umbenennungen:");
+            tmp.append("Umbenennungen:\n");
             for (Map.Entry<Integer, Integer> entry : numMap.entrySet()){
                 if (!Objects.equals(entry.getKey(), entry.getValue())){
                     empty = false;
                 }
-                tmp.append(" ").append(entry.getValue());
+                tmp.append(entry.getKey()).append(" -> ").append(entry.getValue()).append("\n");
             }
             if (!empty){
                 tmp.append("\n");
