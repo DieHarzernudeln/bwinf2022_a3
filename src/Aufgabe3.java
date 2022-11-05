@@ -58,7 +58,7 @@ public class Aufgabe3 {
         }
     }
 
-    //Compare all variations of matrix 2 with matrix 1 and save the first valid variation (if any)
+    //Compare all variations of matrix 1 with matrix 2 and save the first valid variation (if any)
     private void compareAll(){
         int[][] matrix1copy = matrix1;
 
@@ -171,8 +171,8 @@ public class Aufgabe3 {
 
             @Override
             public int[][] next() {
-                int[] ret = first.clone();
-                int[][] ret2 = new int[ret.length][];
+                int[] indexes = first.clone();
+                int[][] map = new int[indexes.length][];
                 first[length - 1] += 1;
                 for (int i = length - 1; i > 0; i--) {
                     if (first[i] > max) {
@@ -181,9 +181,9 @@ public class Aufgabe3 {
                     }
                 }
                 for (int i = 0; i < length; i++) {
-                    ret2[i] = combinations[ret[i]];
+                    map[i] = combinations[indexes[i]];
                 }
-                return ret2;
+                return map;
             }
         };
     }
@@ -191,13 +191,13 @@ public class Aufgabe3 {
     //Read input using the passed arguments
     private void readInput(){
         if (args.length < 1){
-            System.out.println("Syntax: java Aufgabe3.java <Pfad zur Eingabedatei>");
+            System.out.println("Syntax: Aufgabe3 <Pfad zur Eingabedatei>");
             System.exit(0);
         }
         File inputFile = new File(args[0]);
         if (!inputFile.exists()){
             System.out.println("Datei existiert nicht.");
-            System.exit(0);
+            System.exit(1);
         }
         try (BufferedReader br = new BufferedReader(
                new InputStreamReader(new FileInputStream(inputFile), StandardCharsets.UTF_8))){
@@ -211,7 +211,7 @@ public class Aufgabe3 {
         }
         catch (IOException e){
             System.out.println("Error while loading input file.");
-            System.exit(0);
+            System.exit(1);
         }
 
     }
