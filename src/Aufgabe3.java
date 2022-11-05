@@ -6,25 +6,27 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 public class Aufgabe3 {
 
     private final String[] args;
     private final int[][] matrix1 = new int[9][9];
     private final int[][] matrix2 = new int[9][9];
-    private Iterator<int[][]> iterator;
-    private final List<Solution> solutions = new ArrayList<>();
     private final int[][] combinations = {{0, 1, 2},
-                                          {0 ,2, 1},
+                                          {0, 2, 1},
                                           {1, 0, 2},
                                           {1, 2, 0},
                                           {2, 0, 1},
                                           {2, 1, 0}};
+    private final List<Solution> solutions = new ArrayList<>();
+    private Iterator<int[][]> iterator;
 
     public static void main(String[] args) {
         new Aufgabe3(args);
@@ -56,15 +58,15 @@ public class Aufgabe3 {
         }
     }
 
-    //Compare all variations of matrix 1 with matrix 2 and save the first valid variation (if any)
+    //Compare all variations of matrix 2 with matrix 1 and save the first valid variation (if any)
     private void compareAll(){
         int[][] matrix1copy = matrix1;
+
         for (int i = 0; i < 2; i++) {
             setIterator();
             while (iterator.hasNext()){
                 boolean isIdentical = true;
                 int[][] lineShiftMap = iterator.next();
-
                 /*
                     lineShiftMap[x] contains placements of ...
                     0: rows in row block 0
@@ -100,8 +102,8 @@ public class Aufgabe3 {
                 //Compare the variation with matrix 2
                 Iterator<Integer> i1 = Arrays.stream(columnsShuffled).flatMapToInt(Arrays::stream).iterator();
                 Iterator<Integer> i2 = Arrays.stream(matrix2).flatMapToInt(Arrays::stream).iterator();
-                Map<Integer, Integer> map1to2 = new TreeMap<>();
-                Map<Integer, Integer> map2to1 = new TreeMap<>();
+                Map<Integer, Integer> map1to2 = new HashMap<>();
+                Map<Integer, Integer> map2to1 = new HashMap<>();
                 while (i1.hasNext() && i2.hasNext()){
                     int n1 = i1.next();
                     int n2 = i2.next();
@@ -129,11 +131,21 @@ public class Aufgabe3 {
                     }
                 }
                 if (isIdentical){
-                    solutions.add(new Solution(i, lineShiftMap, map1to2));
+                    System.out.println(map1to2.size());
+                    Map<Integer, Integer> tMap = map1to2
+                            .entrySet()
+                            .stream()
+                            .filter(e -> !Objects.equals(e.getKey(), e.getValue()))
+                            .collect(Collectors.toMap(
+                                    Map.Entry::getKey,
+                                    Map.Entry::getValue,
+                                    (v1, v2) -> v1,
+                                    TreeMap::new));
+                    solutions.add(new Solution(i, lineShiftMap, tMap));
                     return; //remove this to get all solutions
                 }
             }
-            if (i == 0){
+            if (i <= 0){
                 matrix1copy = rot90CW(matrix1copy);
             }
         }
@@ -159,8 +171,8 @@ public class Aufgabe3 {
 
             @Override
             public int[][] next() {
-                int[] indexes = first.clone();
-                int[][] map = new int[indexes.length][];
+                int[] ret = first.clone();
+                int[][] ret2 = new int[ret.length][];
                 first[length - 1] += 1;
                 for (int i = length - 1; i > 0; i--) {
                     if (first[i] > max) {
@@ -169,9 +181,9 @@ public class Aufgabe3 {
                     }
                 }
                 for (int i = 0; i < length; i++) {
-                    map[i] = combinations[indexes[i]];
+                    ret2[i] = combinations[ret[i]];
                 }
-                return map;
+                return ret2;
             }
         };
     }
@@ -179,13 +191,13 @@ public class Aufgabe3 {
     //Read input using the passed arguments
     private void readInput(){
         if (args.length < 1){
-            System.out.println("Syntax: Aufgabe3 <Pfad zur Eingabedatei>");
+            System.out.println("Syntax: java Aufgabe3.java <Pfad zur Eingabedatei>");
             System.exit(0);
         }
         File inputFile = new File(args[0]);
         if (!inputFile.exists()){
             System.out.println("Datei existiert nicht.");
-            System.exit(1);
+            System.exit(0);
         }
         try (BufferedReader br = new BufferedReader(
                new InputStreamReader(new FileInputStream(inputFile), StandardCharsets.UTF_8))){
@@ -199,7 +211,7 @@ public class Aufgabe3 {
         }
         catch (IOException e){
             System.out.println("Error while loading input file.");
-            System.exit(1);
+            System.exit(0);
         }
 
     }
@@ -266,83 +278,43 @@ public class Aufgabe3 {
         @Override
         public String toString() {
             StringBuilder sb = new StringBuilder();
-            StringBuilder tmp;
-            boolean empty;
-            if (rotations == 1)
-                sb.append("90 Grad in Uhrzeigesinn drehen").append("\n");
+            if (rotations != 0)
+                sb.append(rotations * 90).append(" Grad in Uhrzeigesinn drehen").append("\n");
             for (int i = 0; i < 3; i++) {
-                tmp = new StringBuilder();
-                empty = true;
-                tmp.append("Zeilen ").append(i * 3 + 1).append("-").append(i * 3 + 3).append(":");
                 for (int j = 0; j < 3; j++) {
                     if (map[i][j] != j){
-                        empty = false;
+                        sb.append(i + 1).append(". Zeilenblock, ").append(j + 1)
+                                .append(". Zeile -> ").append(map[i][j] + 1).append(". Zeile\n");
                     }
-                    tmp.append(" ").append(map[i][j] + 1);
-                }
-                if (!empty){
-                    tmp.append("\n");
-                    sb.append(tmp);
                 }
             }
-
-            tmp = new StringBuilder();
-            empty = true;
-            tmp.append("Zeilenbloecke:");
             for (int i = 0; i < 3; i++) {
                 if (map[3][i] != i){
-                    empty = false;
+                    sb.append(i + 1).append(". Zeilenblock -> ").append(map[3][i] + 1).append(". Zeilenblock\n");
                 }
-                tmp.append(" ").append(map[3][i] + 1);
             }
-            if (!empty){
-                tmp.append("\n");
-                sb.append(tmp);
-            }
-
             for (int i = 0; i < 3; i++) {
-                tmp = new StringBuilder();
-                empty = true;
-                tmp.append("Spalten ").append(i * 3 + 1).append("-").append(i * 3 + 3).append(":");
                 for (int j = 0; j < 3; j++) {
                     if (map[i + 4][j] != j){
-                        empty = false;
+                        sb.append(i + 1).append(". Spaltenblock, ")
+                                .append(j + 1).append(". Spalte -> ").append(map[i + 4][j] + 1).append(". Spalte\n");
                     }
-                    tmp.append(" ").append(map[i + 4][j] + 1);
-                }
-                if (!empty){
-                    tmp.append("\n");
-                    sb.append(tmp);
                 }
             }
-
-            tmp = new StringBuilder();
-            empty = true;
-            sb.append("Spaltenbloecke:");
             for (int i = 0; i < 3; i++) {
                 if (map[7][i] != i){
-                    empty = false;
+                    sb.append(i + 1).append(". Spaltenblock -> ").append(map[7][i] + 1).append(". Spaltenblock\n");
                 }
-                sb.append(" ").append(map[7][i] + 1);
             }
-            if (!empty){
-                tmp.append("\n");
-                sb.append(tmp);
+            if (!numMap.isEmpty()){
+                sb.append("Umbenennungen:\n");
+                for (Map.Entry<Integer, Integer> entry : numMap.entrySet()){
+                    if (!Objects.equals(entry.getKey(), entry.getValue())){
+                        sb.append(entry.getKey()).append(" -> ").append(entry.getValue()).append("\n");
+                    }
+                }
             }
 
-            tmp = new StringBuilder();
-            empty = true;
-            tmp.append("Umbenennungen:\n");
-            for (Map.Entry<Integer, Integer> entry : numMap.entrySet()){
-                if (!Objects.equals(entry.getKey(), entry.getValue())){
-                    empty = false;
-                }
-                tmp.append(entry.getKey()).append(" -> ").append(entry.getValue()).append("\n");
-            }
-            if (!empty){
-                tmp.append("\n");
-                sb.append(tmp);
-            }
             return sb.toString();
         }
     }
