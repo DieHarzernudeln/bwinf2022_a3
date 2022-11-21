@@ -131,7 +131,6 @@ public class Aufgabe3 {
                     }
                 }
                 if (isIdentical){
-                    System.out.println(map1to2.size());
                     Map<Integer, Integer> tMap = map1to2
                             .entrySet()
                             .stream()
